@@ -8,14 +8,16 @@
 
 ## How to demo
 
-./A --env (name of gym env) --load_model (model path)
+```./A --env (name of gym env) --load_model (model path)```
 
-Hopper-v2
-./A --env Hopper-v2 --load_model trained_model/Hopper.xml
+- Hopper-v2
+
+```./A --env Hopper-v2 --load_model trained_model/Hopper.xml```
 
 ## How to train
 
-./A --env (name of gym env) --train_step (# of train step) --load_model (model path if exists)
+```./A --env (name of gym env) --train_step (# of train step) --load_model (model path if exists)```
 
-Hopper-v2
-./A --env Hopper-v2 --train_step 1000
+- Hopper-v2
+
+```./A --env Hopper-v2 --train_step 1000```
