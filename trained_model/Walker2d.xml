@@ -1,0 +1,9 @@
+<RLModel>
+    <Policy gamma="0.994" steps="4096" batch_size="80" episodes="39554" total_tuple="21184448" lamda="0.99" Type="PPO">
+        <Actor network="./trained_model/Walker2d_actor_network">
+            <GaussianDistribution scale="1 1 1 1 1 1" />
+        </Actor>
+        <Critic network="./trained_model/Walker2d_critic_network" />
+        <ClassicModifier n="21189148" mean="1.1733 -0.0215173 -0.0600913 -1.08859 0.774967 -0.524393 0.0174451 0.378211 2.74875 -0.0558073 -0.389209 -0.18287 -1.25242 0.00597772 -0.651893 -0.0306293 -1.2493" std="330509 2.89995e+06 1.16737e+06 2.45214e+07 247600 7.72234e+06 52572.6 9.08278e+06 6.50648e+07 2.8234e+07 5.0351e+08 2.96864e+08 8.92807e+08 1.93561e+08 7.21761e+08 9.60422e+07 6.66351e+08" />
+    </Policy>
+</RLModel>

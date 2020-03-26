@@ -1,0 +1,8 @@
+__pycache__
+build
+*.swp
+save_model
+.gdb_history
+.vscode
+MUJOCO_LOG.TXT
+A

@@ -1,0 +1,9 @@
+<RLModel>
+    <Policy gamma="0.994" steps="2048" batch_size="32" episodes="18918" total_tuple="9998812" lamda="0.99" Type="PPO">
+        <Actor network="./trained_model/Hopper_actor_network">
+            <GaussianDistribution scale="1 1 1" />
+        </Actor>
+        <Critic network="./trained_model/Hopper_critic_network" />
+        <ClassicModifier n="10002717" mean="1.32609 0.0544873 -0.144831 -0.328961 0.254816 2.23798 -0.0403103 0.00524307 -0.125822 -0.0744172 -0.388602" std="288801 43486 530018 838511 3.76174e+06 5.87247e+06 1.98899e+07 1.62097e+07 3.19356e+07 9.84195e+07 3.51688e+08" />
+    </Policy>
+</RLModel>
