@@ -10,8 +10,8 @@ class StateModifier : public CheckPoint{
 	virtual torch::Tensor modify(const torch::Tensor &state);
 
 	virtual void to(torch::Device dev);
-	virtual void set_xml(TiXmlElement *xml);
-	virtual TiXmlElement* get_xml(const std::string &prefix);
+	virtual void set_xml(tinyxml2::XMLElement *xml);
+	virtual tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 class ClassicModifier : public StateModifier{
@@ -24,8 +24,8 @@ class ClassicModifier : public StateModifier{
 	torch::Tensor mean, std;
 	
 	void to(torch::Device dev);
-	void set_xml(TiXmlElement *xml);
-	TiXmlElement* get_xml(const std::string &prefix);
+	void set_xml(tinyxml2::XMLElement *xml);
+	tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 using StateModifierPtr = std::shared_ptr<StateModifier>;

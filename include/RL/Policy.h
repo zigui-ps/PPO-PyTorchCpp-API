@@ -28,8 +28,8 @@ class AgentInterface : public CheckPoint{
 	virtual void train(int train_step, torch::Device device, bool render = false) = 0;
 
 	void to(torch::Device dev);
-	virtual void set_xml(TiXmlElement *xml);
-	virtual TiXmlElement* get_xml(const std::string &prefix);
+	virtual void set_xml(tinyxml2::XMLElement *xml);
+	virtual tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 class VanilaAgent : public AgentInterface{
@@ -48,8 +48,8 @@ class PPOAgent : public AgentInterface{
 
 	virtual void train(int train_step, torch::Device device, bool render = false);
 	
-	virtual void set_xml(TiXmlElement *xml);
-	virtual TiXmlElement* get_xml(const std::string &prefix);
+	virtual void set_xml(tinyxml2::XMLElement *xml);
+	virtual tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 using AgentInterfacePtr = std::shared_ptr<AgentInterface>;

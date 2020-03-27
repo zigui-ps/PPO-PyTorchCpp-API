@@ -3,7 +3,7 @@
 
 #include <torch/torch.h>
 #include<memory>
-#include<tinyxml.h>
+#include<tinyxml2.h>
 #include "RL/CheckPoint.h"
 
 class DistributionInterface : public CheckPoint{
@@ -30,8 +30,8 @@ class GaussianDistribution : public DistributionInterface{
 	torch::Tensor entropy(const torch::Tensor &mu, const torch::Tensor &state);
 	
 	void to(torch::Device dev);
-	void set_xml(TiXmlElement *xml);
-	TiXmlElement* get_xml(const std::string &prefix);
+	void set_xml(tinyxml2::XMLElement *xml);
+	tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 using DistributionInterfacePtr = std::shared_ptr<DistributionInterface>;

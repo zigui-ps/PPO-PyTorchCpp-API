@@ -32,14 +32,14 @@ void GaussianDistribution::to(torch::Device dev){
 	logScale = logScale.to(dev);
 }
 
-void GaussianDistribution::set_xml(TiXmlElement *xml){
+void GaussianDistribution::set_xml(tinyxml2::XMLElement *xml){
 	auto cur = xml->FirstChildElement("GaussianDistribution");
 	stringToTorch(cur->Attribute("scale"), scale);
 	logScale = scale.log();
 }
 
-TiXmlElement* GaussianDistribution::get_xml(const std::string &prefix){
-	TiXmlElement* out = new TiXmlElement("GaussianDistribution");
-	out->SetAttribute("scale", torchToString(scale));
+tinyxml2::XMLElement* GaussianDistribution::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	tinyxml2::XMLElement* out = doc.NewElement("GaussianDistribution");
+	out->SetAttribute("scale", torchToString(scale).c_str());
 	return out;
 }

@@ -1,6 +1,7 @@
 #ifndef MODEL
 #define MODEL
 
+#include <tinyxml2.h>
 #include "RL/Deepnetwork.h"
 #include "RL/Distribution.h"
 
@@ -21,8 +22,8 @@ public:
 	void step();
 
 	void to(torch::Device device);
-	virtual void set_xml(TiXmlElement *xml);
-	virtual TiXmlElement* get_xml(const std::string &prefix);
+	virtual void set_xml(tinyxml2::XMLElement *xml);
+	virtual tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 using ActorPtr = std::shared_ptr<Actor>;
@@ -40,8 +41,8 @@ public:
 	void step();
 
 	void to(torch::Device device);
-	virtual void set_xml(TiXmlElement *xml);
-	virtual TiXmlElement* get_xml(const std::string &prefix);
+	virtual void set_xml(tinyxml2::XMLElement *xml);
+	virtual tinyxml2::XMLElement* get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc);
 };
 
 using CriticPtr = std::shared_ptr<Critic>;

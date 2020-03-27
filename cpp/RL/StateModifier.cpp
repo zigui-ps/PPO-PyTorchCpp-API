@@ -11,11 +11,11 @@ torch::Tensor StateModifier::modify(const torch::Tensor &state){
 void StateModifier::to(torch::Device dev){
 }
 
-void StateModifier::set_xml(TiXmlElement *xml){
+void StateModifier::set_xml(tinyxml2::XMLElement *xml){
 }
 
-TiXmlElement* StateModifier::get_xml(const std::string &prefix){
-	return new TiXmlElement("StateModifier");
+tinyxml2::XMLElement* StateModifier::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	return doc.NewElement("StateModifier");
 }
 
 ClassicModifier::ClassicModifier(int observation_size) : n(0){
@@ -44,17 +44,17 @@ void ClassicModifier::to(torch::Device dev){
 	std = std.to(dev);
 }
 
-void ClassicModifier::set_xml(TiXmlElement *xml){
-	TiXmlElement* cur = xml->FirstChildElement("ClassicModifier");
+void ClassicModifier::set_xml(tinyxml2::XMLElement *xml){
+	tinyxml2::XMLElement* cur = xml->FirstChildElement("ClassicModifier");
 	stringToData(cur->Attribute("n"), n);
 	stringToTorch(cur->Attribute("mean"), mean);
 	stringToTorch(cur->Attribute("std"), std);
 }
 
-TiXmlElement* ClassicModifier::get_xml(const std::string &prefix){
-	TiXmlElement* out = new TiXmlElement("ClassicModifier");
+tinyxml2::XMLElement* ClassicModifier::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	tinyxml2::XMLElement* out = doc.NewElement("ClassicModifier");
 	out->SetAttribute("n", n);
-	out->SetAttribute((std::string)"mean", torchToString(mean));
-	out->SetAttribute((std::string)"std", torchToString(std));
+	out->SetAttribute("mean", torchToString(mean).c_str());
+	out->SetAttribute("std", torchToString(std).c_str());
 	return out;
 }

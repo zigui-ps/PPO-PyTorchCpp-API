@@ -36,13 +36,12 @@ void train(AgentInterfacePtr agent, int train_step, torch::Device device){
 		printf("train fin\n");
 		std::stringstream name;
 		name << "./save_model/" << i;
-		TiXmlDocument* doc = new TiXmlDocument((name.str() + ".xml").c_str());
-		TiXmlElement* root = new TiXmlElement("RLModel");
-		doc->LinkEndChild(root);
-		root->LinkEndChild(agent->get_xml(name.str()));
-		doc->SaveFile();
+		tinyxml2::XMLDocument doc;
+		tinyxml2::XMLElement* root = doc.NewElement("RLModel");
+		doc.LinkEndChild(root);
+		root->LinkEndChild(agent->get_xml(name.str(), doc));
+		doc.SaveFile((name.str() + ".xml").c_str());
 		std::cout << "saved at " << name.str() << ".xml\n";
-		delete doc;
 	}
 }
 
@@ -85,8 +84,8 @@ int main(int argc, char *argv[])
 	AgentInterfacePtr agent = PPO_agent_with_param(env, {128, 128}, 1e-4, {128, 128}, 1e-4, 7e-4, 0.994, 0.99, 4096, 80);
 	//AgentInterfacePtr agent = Vanila_agent_with_param(env, {128, 128}, 1e-4, {128, 128}, 1e-4, 7e-4, 0.994, 2048, 32);
 	if(load_model != ""){
-		TiXmlDocument doc;
-		if(!doc.LoadFile(load_model)) return !printf("%s not exist\n", load_model.c_str());
+		tinyxml2::XMLDocument doc;
+		if(doc.LoadFile(load_model.c_str())) return !printf("%s not exist\n", load_model.c_str());
 		agent->set_xml(doc.RootElement());
 	}
 	train(agent, train_step, device);

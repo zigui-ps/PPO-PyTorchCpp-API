@@ -46,18 +46,18 @@ void Actor::to(torch::Device dev){
 	dist->to(dev);
 }
 
-void Actor::set_xml(TiXmlElement *xml){
-	TiXmlElement* cur = xml->FirstChildElement("Actor");
+void Actor::set_xml(tinyxml2::XMLElement *xml){
+	tinyxml2::XMLElement* cur = xml->FirstChildElement("Actor");
 	std::string net = cur->Attribute("network");
 	torch::load(network, net);
 	dist->set_xml(cur);
 }
 
-TiXmlElement* Actor::get_xml(const std::string &prefix){
-	TiXmlElement* out = new TiXmlElement("Actor");
+tinyxml2::XMLElement* Actor::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	tinyxml2::XMLElement* out = doc.NewElement("Actor");
 	std::string net = prefix + "_actor_network";
-	out->SetAttribute((std::string)"network", net); torch::save(network, net);
-	out->LinkEndChild(dist->get_xml(prefix));
+	out->SetAttribute("network", net.c_str()); torch::save(network, net);
+	out->LinkEndChild(dist->get_xml(prefix, doc));
 	return out;
 }
 
@@ -88,15 +88,15 @@ void Critic::to(torch::Device dev){
 	network->to(dev);
 }
 
-void Critic::set_xml(TiXmlElement *xml){
-	TiXmlElement* cur = xml->FirstChildElement("Critic");
+void Critic::set_xml(tinyxml2::XMLElement *xml){
+	tinyxml2::XMLElement* cur = xml->FirstChildElement("Critic");
 	std::string net = cur->Attribute("network");
 	torch::load(network, net);
 }
 
-TiXmlElement* Critic::get_xml(const std::string &prefix){
-	TiXmlElement* out = new TiXmlElement("Critic");
+tinyxml2::XMLElement* Critic::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	tinyxml2::XMLElement* out = doc.NewElement("Critic");
 	std::string net = prefix + "_critic_network";
-	out->SetAttribute((std::string)"network", net); torch::save(network, net);
+	out->SetAttribute("network", net.c_str()); torch::save(network, net);
 	return out;
 }

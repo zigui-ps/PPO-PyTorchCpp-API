@@ -49,8 +49,8 @@ void AgentInterface::to(torch::Device dev){
 }
 
 // Every tensor object must be in CPU when set_xml called.
-void AgentInterface::set_xml(TiXmlElement *xml){
-	TiXmlElement* cur = xml->FirstChildElement("Policy");
+void AgentInterface::set_xml(tinyxml2::XMLElement *xml){
+	tinyxml2::XMLElement* cur = xml->FirstChildElement("Policy");
 	actor->set_xml(cur);
 	critic->set_xml(cur);
 	state_modifier->set_xml(cur);
@@ -61,12 +61,12 @@ void AgentInterface::set_xml(TiXmlElement *xml){
 	stringToData(cur->Attribute("total_tuple"), total_tuple);
 }
 
-TiXmlElement* AgentInterface::get_xml(const std::string &prefix){
-	TiXmlElement* out = new TiXmlElement("Policy");
-	out->LinkEndChild(actor->get_xml(prefix));
-	out->LinkEndChild(critic->get_xml(prefix));
-	out->LinkEndChild(state_modifier->get_xml(prefix));
-	out->SetDoubleAttribute("gamma", gamma);
+tinyxml2::XMLElement* AgentInterface::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	tinyxml2::XMLElement* out = doc.NewElement("Policy");
+	out->LinkEndChild(actor->get_xml(prefix, doc));
+	out->LinkEndChild(critic->get_xml(prefix, doc));
+	out->LinkEndChild(state_modifier->get_xml(prefix, doc));
+	out->SetAttribute("gamma", gamma);
 	out->SetAttribute("steps", steps);
 	out->SetAttribute("batch_size", batch_size);
 	out->SetAttribute("episodes", episodes);
@@ -176,15 +176,15 @@ void PPOAgent::train(int train_step, torch::Device device, bool render){
 	}
 }
 
-void PPOAgent::set_xml(TiXmlElement *xml){
+void PPOAgent::set_xml(tinyxml2::XMLElement *xml){
 	AgentInterface::set_xml(xml);
-	TiXmlElement* cur = xml->FirstChildElement("Policy");
+	tinyxml2::XMLElement* cur = xml->FirstChildElement("Policy");
 	stringToData(cur->Attribute("lamda"), lamda);
 }
 
-TiXmlElement* PPOAgent::get_xml(const std::string &prefix){
-	TiXmlElement* out = AgentInterface::get_xml(prefix);
-	out->SetDoubleAttribute("lamda", lamda);
+tinyxml2::XMLElement* PPOAgent::get_xml(const std::string &prefix, tinyxml2::XMLDocument &doc){
+	tinyxml2::XMLElement* out = AgentInterface::get_xml(prefix, doc);
+	out->SetAttribute("lamda", lamda);
 	out->SetAttribute("Type", "PPO");
 	return out;
 }
