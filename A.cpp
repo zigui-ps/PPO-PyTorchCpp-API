@@ -3,15 +3,16 @@
 
 void PythonInit(int argc, char *argv[]){
     Py_Initialize();
+	PyEval_InitThreads();
 	wchar_t **argw = new wchar_t*[argc];
 	for(int i = 0; i < argc; i++) argw[i] = Py_DecodeLocale(argv[i], NULL);
     PySys_SetArgv(argc, argw);
 }
 
-AgentInterfacePtr PPO_agent_with_param(GymEnvironmentPtr env, std::vector<int> actor_size, double actor_lr, \
+AgentInterfacePtr PPO_agent_with_param(std::vector<PytorchEnvironmentPtr> &env, std::vector<int> actor_size, double actor_lr, \
 		std::vector<int> critic_size, double critic_lr, double critic_decay, double gamma, double lamda, int steps, int batch_size){
-	int o_size = env->observationSize;
-	int a_size = env->actionSize;
+	int o_size = env[0]->observationSize;
+	int a_size = env[0]->actionSize;
 	actor_size.insert(actor_size.begin(), o_size); actor_size.insert(actor_size.end(), a_size);
 	DeepNetworkPtr actor_network = DeepNetworkPtr(new DeepNetwork(actor_size));
 	AdamPtr actor_opt = AdamPtr(new torch::optim::Adam(actor_network->parameters(), actor_lr));
@@ -29,10 +30,10 @@ AgentInterfacePtr PPO_agent_with_param(GymEnvironmentPtr env, std::vector<int> a
 	return AgentInterfacePtr(new PPOAgent(env, actor, critic, state_modifier, gamma, lamda, steps, batch_size));
 }
 
-void train(AgentInterfacePtr agent, int train_step, torch::Device device){
+void train(AgentInterfacePtr agent, int train_step, torch::Device device, bool render){
 	mkdir("save_model", 0775);
 	for(int i = 0; i < train_step; i++){
-		agent->train(5, device, true);
+		agent->train(5, device, render);
 		printf("train fin\n");
 		std::stringstream name;
 		name << "./save_model/" << i;
@@ -45,7 +46,7 @@ void train(AgentInterfacePtr agent, int train_step, torch::Device device){
 	}
 }
 
-void demo(GymEnvironmentPtr env, AgentInterfacePtr agent, torch::Device device){
+void demo(PytorchEnvironmentPtr env, AgentInterfacePtr agent, torch::Device device){
 	agent->to(device);
 	torch::Tensor state = env->reset();
 	while(1){
@@ -62,6 +63,8 @@ static std::string load_model;
 static torch::Device device = torch::kCPU;
 static int train_step = 0;
 static std::string env_type;
+static int render = 0;
+static int cpu = 16;
 
 void ParseArgs(int argc, char *argv[]){
 	for(int i = 0; i < argc; i++){
@@ -80,7 +83,8 @@ int main(int argc, char *argv[])
 	PythonInit(argc, argv);
 	ParseArgs(argc, argv);
 
-	GymEnvironmentPtr env = GymEnvironmentPtr(new GymEnvironment(env_type.c_str(), device));
+	std::vector<PytorchEnvironmentPtr> env;
+	for(int i = 0; i < cpu; i++) env.push_back(PytorchEnvironmentPtr(new GymEnvironment(env_type.c_str(), device)));
 	AgentInterfacePtr agent = PPO_agent_with_param(env, {128, 128}, 1e-4, {128, 128}, 1e-4, 7e-4, 0.994, 0.99, 4096, 80);
 	//AgentInterfacePtr agent = Vanila_agent_with_param(env, {128, 128}, 1e-4, {128, 128}, 1e-4, 7e-4, 0.994, 2048, 32);
 	if(load_model != ""){
@@ -88,8 +92,8 @@ int main(int argc, char *argv[])
 		if(doc.LoadFile(load_model.c_str())) return !printf("%s not exist\n", load_model.c_str());
 		agent->set_xml(doc.RootElement());
 	}
-	train(agent, train_step, device);
-	demo(env, agent, device);
+	train(agent, train_step, device, render);
+	if(render) demo(env[0], agent, device);
 
 	if (Py_FinalizeEx() < 0) {
 		return 120;

@@ -10,7 +10,7 @@ class GymEnvironment : public PyWrapper, public PytorchEnvironment{
 public:
 	GymEnvironment(const char* name, torch::Device device);
 	PyObject* pyReset, *pyStep, *pyRender;
-	int steps, observationSize, actionSize;
+	int steps;
 
 	virtual torch::Tensor reset();
 	virtual void step(const torch::Tensor &action, torch::Tensor &next_state, double &reward, int &done, int &tl);
