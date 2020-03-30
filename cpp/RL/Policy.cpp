@@ -1,36 +1,53 @@
 #include "RL/Policy.h"
+#include <mutex>
 
-AgentInterface::AgentInterface(GymEnvironmentPtr env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, int steps, int batch_size)
+static std::mutex mtx;
+
+AgentInterface::AgentInterface(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, int steps, int batch_size)
 	:env(env), actor(actor), critic(critic), state_modifier(state_modifier), gamma(gamma), steps(steps), batch_size(batch_size),
-	zero_state(env->reset()), max_score(0), episodes(0), total_tuple(0){
+	zero_state(env[0]->reset()), max_score(0), episodes(0), total_tuple(0){
 }
 
 ReplayBuffer AgentInterface::get_replay_buffer(bool render){
-	double total_score = 0; int n = 0, tuple = 0;
-	ReplayBuffer replay_buffer;
-	torch::Tensor state = state_modifier->apply(env->reset());
-	while(tuple < steps){
-		if(++n == 1) std::cout << "0 state value : " << critic->get_values(state_modifier->modify(zero_state)).item().toDouble() << "\n";
-		double score = 0;
-		while(1){
-			if(render) env->render();
-			torch::Tensor next_state; double reward; int done, tl;
-			torch::Tensor action = actor->get_action(state);
-			env->step(action, next_state, reward, done, tl);
-			next_state = state_modifier->apply(next_state);
-			if(tl) reward += critic->get_values(next_state).item().toDouble() * gamma;
-			replay_buffer.append(state, action, reward, done);
-			state = next_state;
+	std::vector<ReplayBuffer> replay_buffer(env.size());
+	std::vector<int> tuple(env.size(), 0), n(env.size(), 0);
+	std::vector<double> total_score(env.size(), 0.);
 
-			score += reward; tuple += 1;
-			if(done) break;
+#pragma omp parallel for schedule(dynamic)
+	for(int i = 0; i < env.size(); i++){
+		mtx.lock();
+		torch::Tensor state = state_modifier->apply(env[i]->reset());
+		mtx.unlock();
+		while(tuple[i] * env.size() < steps){
+			if(++n[i] == 1 && i == 0) std::cout << "0 state value : " << critic->get_values(state_modifier->modify(zero_state)).item().toDouble() << "\n";
+			double score = 0;
+			while(1){
+				if(render && i == 0) env[i]->render();
+				torch::Tensor next_state; double reward; int done, tl;
+				torch::Tensor action = actor->get_action(state);
+				env[i]->step(action, next_state, reward, done, tl);
+				
+				mtx.lock();
+				next_state = state_modifier->apply(next_state); //TODO
+				mtx.unlock();
+
+				if(tl) reward += critic->get_values(next_state).item().toDouble() * gamma;
+				replay_buffer[i].append(state.clone(), action.clone(), reward, done);
+				state = next_state;
+
+				score += reward; tuple[i] += 1;
+				if(done) break;
+			}
+			total_score[i] += score;
 		}
-		total_score += score;
 	}
-	episodes += n; total_tuple += tuple;
-	std::cout << "episodes : " << episodes << "(" << total_tuple << "), score : " << total_score / n << ", avg steps : " << tuple / (double)n \
-		<< ", avg reward : " << total_score / tuple << "\n";
-	return replay_buffer;
+	int tn = 0, tp = 0; double tc = 0;
+	for(int i = 0; i < env.size(); i++) tn += n[i], tp += tuple[i], tc += total_score[i];
+	total_tuple += tp; episodes += tn;
+	std::cout << "episodes : " << episodes << "(" << total_tuple << "), score : " << tc / tn << ", avg steps : " << tp / (double)tn \
+		<< ", avg reward : " << tc / tp << "\n";
+	for(int i = 1; i < env.size(); i++) replay_buffer[0].merge(replay_buffer[i]);
+	return replay_buffer[0];
 }
 
 torch::Tensor AgentInterface::next_action(const torch::Tensor &state){
@@ -42,10 +59,11 @@ torch::Tensor AgentInterface::next_action_nodist(const torch::Tensor &state){
 }
 
 void AgentInterface::to(torch::Device dev){
-	env->to(dev);
+	for(auto e : env) e->to(dev);
 	actor->to(dev);
 	critic->to(dev);
 	state_modifier->to(dev);
+	zero_state.to(dev);
 }
 
 // Every tensor object must be in CPU when set_xml called.
@@ -74,7 +92,7 @@ tinyxml2::XMLElement* AgentInterface::get_xml(const std::string &prefix, tinyxml
 	return out;
 }
 
-VanilaAgent::VanilaAgent(GymEnvironmentPtr env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, int steps, int batch_size)
+VanilaAgent::VanilaAgent(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, int steps, int batch_size)
 	: AgentInterface(env, actor, critic, state_modifier, gamma, steps, batch_size){
 }
 
@@ -102,7 +120,7 @@ void VanilaAgent::train(int train_step, torch::Device device, bool render){
 	}
 }
 
-PPOAgent::PPOAgent(GymEnvironmentPtr env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, double lamda, int steps, int batch_size)
+PPOAgent::PPOAgent(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, double lamda, int steps, int batch_size)
 	: AgentInterface(env, actor, critic, state_modifier, gamma, steps, batch_size), lamda(lamda){
 }
 

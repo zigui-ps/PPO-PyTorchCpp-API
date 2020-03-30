@@ -8,10 +8,10 @@
 
 class AgentInterface : public CheckPoint{
 	public:
-	AgentInterface(GymEnvironmentPtr env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, \
+	AgentInterface(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, \
 		double gamma, int steps, int batch_size);
 
-	GymEnvironmentPtr env;
+	std::vector<PytorchEnvironmentPtr> env;
 	ActorPtr actor;
 	CriticPtr critic;
 	StateModifierPtr state_modifier;
@@ -34,7 +34,7 @@ class AgentInterface : public CheckPoint{
 
 class VanilaAgent : public AgentInterface{
 	public:
-	VanilaAgent(GymEnvironmentPtr env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, \
+	VanilaAgent(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, \
 		double gamma, int steps, int batch_size);
 
 	virtual void train(int train_step, torch::Device device, bool render = false);
@@ -42,7 +42,7 @@ class VanilaAgent : public AgentInterface{
 
 class PPOAgent : public AgentInterface{
 	public:
-	PPOAgent(GymEnvironmentPtr env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, \
+	PPOAgent(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, \
 		double gamma, double lamda, int steps, int batch_size);
 	double lamda;
 
