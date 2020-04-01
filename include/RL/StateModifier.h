@@ -2,6 +2,7 @@
 #define STATEMODIFIER
 
 #include <torch/torch.h>
+#include <mutex>
 #include "RL/CheckPoint.h"
 
 class StateModifier : public CheckPoint{
@@ -16,6 +17,8 @@ class StateModifier : public CheckPoint{
 
 class ClassicModifier : public StateModifier{
 	public:
+	std::mutex mtx;
+
 	ClassicModifier(int observation_size);
 	
 	virtual torch::Tensor apply(const torch::Tensor &state);

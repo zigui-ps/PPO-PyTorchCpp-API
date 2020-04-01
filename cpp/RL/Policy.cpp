@@ -1,7 +1,6 @@
 #include "RL/Policy.h"
+#include "Helper/TimeProfiler.h"
 #include <mutex>
-
-static std::mutex mtx;
 
 AgentInterface::AgentInterface(std::vector<PytorchEnvironmentPtr> env, ActorPtr actor, CriticPtr critic, StateModifierPtr state_modifier, double gamma, int steps, int batch_size)
 	:env(env), actor(actor), critic(critic), state_modifier(state_modifier), gamma(gamma), steps(steps), batch_size(batch_size),
@@ -9,15 +8,16 @@ AgentInterface::AgentInterface(std::vector<PytorchEnvironmentPtr> env, ActorPtr 
 }
 
 ReplayBuffer AgentInterface::get_replay_buffer(bool render){
-	std::vector<ReplayBuffer> replay_buffer(env.size());
 	std::vector<int> tuple(env.size(), 0), n(env.size(), 0);
 	std::vector<double> total_score(env.size(), 0.);
+	ReplayBuffer replay_buffer_total;
+	std::mutex mtx;
 
 #pragma omp parallel for schedule(dynamic)
 	for(int i = 0; i < env.size(); i++){
-		mtx.lock();
+		torch::NoGradGuard guard;
+		ReplayBuffer replay_buffer;
 		torch::Tensor state = state_modifier->apply(env[i]->reset());
-		mtx.unlock();
 		while(tuple[i] * env.size() < steps){
 			if(++n[i] == 1 && i == 0) std::cout << "0 state value : " << critic->get_values(state_modifier->modify(zero_state)).item().toDouble() << "\n";
 			double score = 0;
@@ -27,12 +27,10 @@ ReplayBuffer AgentInterface::get_replay_buffer(bool render){
 				torch::Tensor action = actor->get_action(state);
 				env[i]->step(action, next_state, reward, done, tl);
 				
-				mtx.lock();
 				next_state = state_modifier->apply(next_state); //TODO
-				mtx.unlock();
 
 				if(tl) reward += critic->get_values(next_state).item().toDouble() * gamma;
-				replay_buffer[i].append(state.clone(), action.clone(), reward, done);
+				replay_buffer.append(state, action, reward, done);
 				state = next_state;
 
 				score += reward; tuple[i] += 1;
@@ -40,14 +38,16 @@ ReplayBuffer AgentInterface::get_replay_buffer(bool render){
 			}
 			total_score[i] += score;
 		}
+		mtx.lock();
+		replay_buffer_total.merge(replay_buffer);
+		mtx.unlock();
 	}
 	int tn = 0, tp = 0; double tc = 0;
 	for(int i = 0; i < env.size(); i++) tn += n[i], tp += tuple[i], tc += total_score[i];
 	total_tuple += tp; episodes += tn;
 	std::cout << "episodes : " << episodes << "(" << total_tuple << "), score : " << tc / tn << ", avg steps : " << tp / (double)tn \
 		<< ", avg reward : " << tc / tp << "\n";
-	for(int i = 1; i < env.size(); i++) replay_buffer[0].merge(replay_buffer[i]);
-	return replay_buffer[0];
+	return replay_buffer_total;
 }
 
 torch::Tensor AgentInterface::next_action(const torch::Tensor &state){
@@ -101,7 +101,6 @@ void VanilaAgent::train(int train_step, torch::Device device, bool render){
 		torch::Tensor states, actions, returns; 
 		// no gradient
 		{
-			torch::NoGradGuard guard;
 			actor->eval(); critic->eval();
 			ReplayBuffer replay_buffer = get_replay_buffer(render);
 			std::tie(states, actions) = replay_buffer.get_tensor();

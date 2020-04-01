@@ -24,19 +24,22 @@ ClassicModifier::ClassicModifier(int observation_size) : n(0){
 }
 
 torch::Tensor ClassicModifier::apply(const torch::Tensor &state){
+	mtx.lock();
 	n += 1;
 	torch::Tensor prev_mean = mean.clone();
 	mean = prev_mean + (state - prev_mean) / n;
 	std = std + (state - prev_mean) * (state - mean);
+	mtx.unlock();
 	return modify(state);
 }
 
 torch::Tensor ClassicModifier::modify(const torch::Tensor &state){
-	torch::Tensor norm;
-	if(n == 0) return state;
-	else if(n == 1) norm = torch::zeros(state.size(0), state.device());
-	else norm = (state - mean) / (std.div(n-1).sqrt().add(1e-8));
-	return norm.clamp(-5, 5);
+	torch::Tensor ret;
+	mtx.lock();
+	if(n <= 1) ret = torch::zeros(state.size(0), state.device());
+	else ret = (state - mean) / (std.div(n-1).sqrt().add(1e-8));
+	mtx.unlock();
+	return ret.clamp(-5, 5);
 }
 
 void ClassicModifier::to(torch::Device dev){
