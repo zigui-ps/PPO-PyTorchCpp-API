@@ -5,6 +5,8 @@
 PyObject* GymEnvironment::pModule;
 PyObject* GymEnvironment::pMake;
 
+static std::mutex mtx;
+
 GymEnvironment::GymEnvironment(const char* name, torch::Device device) : 
 		PytorchEnvironment(device), PyWrapper(pModule == NULL? init(name) : PyObject_CallFunctionObjArgs(pMake, PyString(name).obj, NULL)){
 	pyReset = PyObject_GetAttrString(obj, "reset");
@@ -27,10 +29,14 @@ PyObject* GymEnvironment::init(const char* name){
 
 torch::Tensor GymEnvironment::reset(){
 	steps = 0;
-	return PySequenceToTensor(PyObject_CallFunctionObjArgs(pyReset, NULL), true).to(device);
+	mtx.lock();
+	torch::Tensor tmp = PySequenceToTensor(PyObject_CallFunctionObjArgs(pyReset, NULL), true).to(device);
+	mtx.unlock();
+	return tmp;
 }
 
 void GymEnvironment::step(const torch::Tensor &action, torch::Tensor &next_state, double &reward, int &done, int &tl){
+	mtx.lock();
 	PyObject* tuple = PyObject_CallFunctionObjArgs(pyStep, PyArray(action.to(torch::kCPU)).obj, NULL);
 	if(tuple == NULL) PyErr_Print();
 	next_state = PySequenceToTensor(PyTuple_GetItem(tuple, 0)).to(device);
@@ -38,9 +44,12 @@ void GymEnvironment::step(const torch::Tensor &action, torch::Tensor &next_state
 	done = (PyTuple_GetItem(tuple, 2) == Py_True);
 	tl = steps >= 2000;
 	Py_DECREF(tuple);
+	mtx.unlock();
 	if(done) next_state = reset();
 }
 
 void GymEnvironment::render(){
+	mtx.lock();
 	if(PyObject_CallFunctionObjArgs(pyRender, NULL) == NULL) PyErr_Print();
+	mtx.unlock();
 }
